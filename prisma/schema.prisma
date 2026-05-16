@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  BUSINESS
+}
+
+enum InputType {
+  YOUTUBE
+  TEXT
+  AUDIO
+}
+
+enum Platform {
+  X
+  INSTAGRAM
+  NOTE
+  BLOG
+}
+
+enum Tone {
+  CASUAL
+  BUSINESS
+  EDUCATIONAL
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  image             String?
+  plan              Plan      @default(FREE)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  usageCountMonth      Int       @default(0)
+  usageResetDate    DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  contents          Content[]
+}
+
+model Content {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputType   InputType
+  inputData   String
+  transcript  String?
+  title       String?
+  createdAt   DateTime     @default(now())
+  generations Generation[]
+}
+
+model Generation {
+  id          String   @id @default(cuid())
+  contentId   String
+  content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  platform    Platform
+  tone        Tone
+  outputText  String
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}

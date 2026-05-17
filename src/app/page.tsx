@@ -55,7 +55,7 @@ export default function Home() {
             >
               30秒で体験してみる
             </a>
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="mt-4 text-sm text-gray-600">
               Googleアカウントで即開始 / クレジットカード不要
             </p>
           </div>
@@ -169,7 +169,7 @@ export default function Home() {
               <div className="p-6 bg-white border border-gray-200 rounded-xl">
                 <h4 className="font-semibold text-lg">Free</h4>
                 <p className="text-3xl font-bold mt-2">¥0</p>
-                <p className="text-gray-500 text-sm mt-1">月3回まで</p>
+                <p className="text-gray-500 text-sm mt-1">月5回まで</p>
               </div>
               <div className="p-6 bg-white border-2 border-indigo-500 rounded-xl relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-indigo-500 text-white text-xs font-medium rounded-full">
@@ -196,7 +196,7 @@ export default function Home() {
           <h3 className="text-3xl font-bold text-white mb-4">
             もう、手動で書き直すのは終わりにしよう。
           </h3>
-          <p className="text-indigo-100 mb-8 max-w-xl mx-auto">
+          <p className="text-white/80 mb-8 max-w-xl mx-auto">
             あなたのコンテンツは価値がある。<br />
             その価値を、全てのSNSに届けるのはAIに任せよう。
           </p>
@@ -206,7 +206,7 @@ export default function Home() {
           >
             無料で始める
           </a>
-          <p className="mt-4 text-sm text-indigo-200">
+          <p className="mt-4 text-sm text-white/70">
             30秒で登録完了。いつでも解約OK。
           </p>
         </section>

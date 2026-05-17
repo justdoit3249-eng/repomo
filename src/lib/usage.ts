@@ -1,7 +1,7 @@
 type Plan = "FREE" | "STARTER" | "PRO" | "BUSINESS";
 
 const PLAN_LIMITS: Record<Plan, number> = {
-  FREE: 3,
+  FREE: 5,
   STARTER: 30,
   PRO: 9999,
   BUSINESS: 9999,

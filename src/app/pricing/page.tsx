@@ -34,44 +34,48 @@ export default function PricingPage() {
       price: "¥0",
       period: "",
       description: "まずは試してみたい方に",
-      features: ["月3回まで変換", "全プラットフォーム対応", "3トーン選択"],
+      features: ["月5回まで変換", "全プラットフォーム対応", "3トーン選択"],
       cta: "無料で始める",
       action: () => { window.location.href = "/login"; },
       highlighted: false,
       planKey: null as PaidPlan | null,
+      comingSoon: false,
     },
     {
       name: "Starter",
       price: "¥2,980",
       period: "/月",
       description: "個人クリエイター向け",
-      features: ["月30回まで変換", "全プラットフォーム対応", "3トーン選択", "履歴保存（無制限）", "優先サポート"],
-      cta: "Starterを始める",
-      action: () => startCheckout("STARTER"),
+      features: ["月30回まで変換", "全プラットフォーム対応", "3トーン選択", "優先サポート"],
+      cta: "準備中",
+      action: () => {},
       highlighted: true,
       planKey: "STARTER" as PaidPlan,
+      comingSoon: true,
     },
     {
       name: "Pro",
       price: "¥9,800",
       period: "/月",
       description: "本格運用したい方に",
-      features: ["無制限変換", "全プラットフォーム対応", "3トーン選択", "履歴保存（無制限）", "優先サポート", "API アクセス", "カスタムプロンプト"],
-      cta: "Proを始める",
-      action: () => startCheckout("PRO"),
+      features: ["無制限変換", "全プラットフォーム対応", "3トーン選択", "優先サポート"],
+      cta: "準備中",
+      action: () => {},
       highlighted: false,
       planKey: "PRO" as PaidPlan,
+      comingSoon: true,
     },
     {
       name: "Business",
       price: "¥29,800",
       period: "/月",
       description: "チーム・企業向け",
-      features: ["無制限変換", "全プラットフォーム対応", "チームメンバー5名まで", "ブランドテンプレート", "分析ダッシュボード", "専任サポート", "請求書払い対応"],
-      cta: "Businessを始める",
-      action: () => startCheckout("BUSINESS"),
+      features: ["無制限変換", "全プラットフォーム対応", "チーム機能（予定）", "専任サポート"],
+      cta: "準備中",
+      action: () => {},
       highlighted: false,
       planKey: "BUSINESS" as PaidPlan,
+      comingSoon: true,
     },
   ];
 
@@ -131,9 +135,11 @@ export default function PricingPage() {
               </ul>
               <button
                 onClick={plan.action}
-                disabled={loadingPlan !== null}
+                disabled={loadingPlan !== null || plan.comingSoon}
                 className={`block w-full text-center py-3 rounded-lg font-medium transition ${
-                  plan.highlighted
+                  plan.comingSoon
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : plan.highlighted
                     ? "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
                 }`}
@@ -149,7 +155,7 @@ export default function PricingPage() {
           <div className="max-w-2xl mx-auto space-y-4 text-left">
             <div className="p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium text-gray-900">無料プランに制限はありますか？</h4>
-              <p className="mt-1 text-sm text-gray-600">月3回までの変換が可能です。全プラットフォーム・全トーンが利用できます。</p>
+              <p className="mt-1 text-sm text-gray-600">月5回までの変換が可能です。全プラットフォーム・全トーンが利用できます。</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium text-gray-900">いつでも解約できますか？</h4>

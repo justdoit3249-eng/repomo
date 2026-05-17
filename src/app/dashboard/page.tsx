@@ -4,9 +4,9 @@ import { useSession, signOut } from "next-auth/react";
 import GenerateForm from "@/components/GenerateForm";
 
 const PLAN_LIMITS: Record<string, number> = {
-  FREE: 3,
+  FREE: 5,
   STARTER: 30,
-  PRO: 100,
+  PRO: 9999,
   BUSINESS: 9999,
 };
 

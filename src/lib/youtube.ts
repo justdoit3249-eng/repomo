@@ -13,36 +13,72 @@ export function extractVideoId(url: string): string | null {
   return null;
 }
 
+/**
+ * YouTube Data API v3 + timedtext API で動画タイトルと字幕を取得
+ * 日本語字幕を優先、なければ英語、なければエラー
+ */
 export async function getYouTubeTranscript(videoId: string): Promise<{ title: string; transcript: string }> {
-  const response = await fetch(
-    `https://www.youtube.com/watch?v=${videoId}`
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) {
+    throw new Error("YOUTUBE_API_KEY が設定されていません。");
+  }
+
+  // 1. YouTube Data API v3 で動画タイトルを取得
+  const videoRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
   );
-  const html = await response.text();
+  if (!videoRes.ok) {
+    throw new Error(`YouTube API エラー: ${videoRes.status} ${videoRes.statusText}`);
+  }
+  const videoData = await videoRes.json();
+  if (!videoData.items || videoData.items.length === 0) {
+    throw new Error("動画が見つかりませんでした。URLを確認してください。");
+  }
+  const title = videoData.items[0].snippet.title;
 
-  const titleMatch = html.match(/<title>(.*?)<\/title>/);
-  const title = titleMatch
-    ? titleMatch[1].replace(" - YouTube", "").trim()
-    : "Untitled";
+  // 2. timedtext API で字幕トラック一覧を取得
+  const listUrl = `https://www.youtube.com/api/timedtext?type=list&v=${videoId}`;
+  const listRes = await fetch(listUrl);
+  if (!listRes.ok) {
+    throw new Error("字幕トラック一覧の取得に失敗しました。");
+  }
+  const listXml = await listRes.text();
 
-  const captionTracksMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
-  if (!captionTracksMatch) {
-    throw new Error("字幕が見つかりませんでした。Whisper APIで音声解析を試みてください。");
+  // 字幕トラックから言語コードを抽出
+  const trackMatches = [...listXml.matchAll(/lang_code="([^"]+)"/g)];
+  const availableLangs = trackMatches.map((m) => m[1]);
+
+  if (availableLangs.length === 0) {
+    throw new Error("この動画には字幕がありません。Whisper APIで音声解析を試みてください。");
   }
 
-  const captionTracks = JSON.parse(captionTracksMatch[1]);
-  const jaTrack = captionTracks.find(
-    (track: { languageCode: string }) =>
-      track.languageCode === "ja" || track.languageCode === "ja-JP"
-  ) || captionTracks[0];
-
-  if (!jaTrack?.baseUrl) {
-    throw new Error("字幕トラックのURLが取得できませんでした。");
+  // 日本語優先、なければ英語
+  let targetLang: string | undefined;
+  if (availableLangs.includes("ja")) {
+    targetLang = "ja";
+  } else if (availableLangs.includes("ja-JP")) {
+    targetLang = "ja-JP";
+  } else if (availableLangs.includes("en")) {
+    targetLang = "en";
+  } else {
+    // どれにも該当しなければ最初のトラックを使用
+    targetLang = availableLangs[0];
   }
 
-  const captionResponse = await fetch(jaTrack.baseUrl);
-  const captionXml = await captionResponse.text();
+  // 3. 字幕テキストを取得
+  const captionUrl = `https://www.youtube.com/api/timedtext?lang=${targetLang}&v=${videoId}`;
+  const captionRes = await fetch(captionUrl);
+  if (!captionRes.ok) {
+    throw new Error("字幕テキストの取得に失敗しました。");
+  }
+  const captionXml = await captionRes.text();
 
+  // XMLからテキストを抽出
   const textSegments = captionXml.match(/<text[^>]*>(.*?)<\/text>/g) || [];
+  if (textSegments.length === 0) {
+    throw new Error("字幕テキストが空です。Whisper APIで音声解析を試みてください。");
+  }
+
   const transcript = textSegments
     .map((segment) =>
       segment

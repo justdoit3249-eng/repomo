@@ -23,7 +23,6 @@ export async function getYouTubeTranscript(videoId: string): Promise<{ title: st
     throw new Error("YOUTUBE_API_KEY が設定されていません。");
   }
 
-  // 1. YouTube Data API v3 で動画タイトルを取得
   const videoRes = await fetch(
     `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
   );
@@ -34,62 +33,81 @@ export async function getYouTubeTranscript(videoId: string): Promise<{ title: st
   if (!videoData.items || videoData.items.length === 0) {
     throw new Error("動画が見つかりませんでした。URLを確認してください。");
   }
-  const title = videoData.items[0].snippet.title;
 
-  // 2. timedtext API で字幕トラック一覧を取得
-  const listUrl = `https://www.youtube.com/api/timedtext?type=list&v=${videoId}`;
-  const listRes = await fetch(listUrl);
-  if (!listRes.ok) {
-    throw new Error("字幕トラック一覧の取得に失敗しました。");
-  }
-  const listXml = await listRes.text();
+  const snippet = videoData.items[0].snippet;
+  const title = snippet.title;
+  const description = snippet.description ?? "";
+  const tags = (snippet.tags ?? []) as string[];
 
-  // 字幕トラックから言語コードを抽出
-  const trackMatches = [...listXml.matchAll(/lang_code="([^"]+)"/g)];
-  const availableLangs = trackMatches.map((m) => m[1]);
+  const transcript = await fetchCaptions(videoId);
 
-  if (availableLangs.length === 0) {
-    throw new Error("この動画には字幕がありません。Whisper APIで音声解析を試みてください。");
+  if (transcript) {
+    return { title, transcript };
   }
 
-  // 日本語優先、なければ英語
-  let targetLang: string | undefined;
-  if (availableLangs.includes("ja")) {
-    targetLang = "ja";
-  } else if (availableLangs.includes("ja-JP")) {
-    targetLang = "ja-JP";
-  } else if (availableLangs.includes("en")) {
-    targetLang = "en";
-  } else {
-    // どれにも該当しなければ最初のトラックを使用
-    targetLang = availableLangs[0];
+  const fallbackText = buildFallbackText(title, description, tags);
+  if (fallbackText.length >= 50) {
+    return { title, transcript: fallbackText };
   }
 
-  // 3. 字幕テキストを取得
-  const captionUrl = `https://www.youtube.com/api/timedtext?lang=${targetLang}&v=${videoId}`;
-  const captionRes = await fetch(captionUrl);
-  if (!captionRes.ok) {
-    throw new Error("字幕テキストの取得に失敗しました。");
+  throw new Error(
+    "この動画には字幕も説明文もありません。テキスト入力から直接テキストを貼り付けてお試しください。"
+  );
+}
+
+async function fetchCaptions(videoId: string): Promise<string | null> {
+  try {
+    const listUrl = `https://www.youtube.com/api/timedtext?type=list&v=${videoId}`;
+    const listRes = await fetch(listUrl);
+    if (!listRes.ok) return null;
+    const listXml = await listRes.text();
+
+    const trackMatches = [...listXml.matchAll(/lang_code="([^"]+)"/g)];
+    const availableLangs = trackMatches.map((m) => m[1]);
+    if (availableLangs.length === 0) return null;
+
+    let targetLang: string;
+    if (availableLangs.includes("ja")) {
+      targetLang = "ja";
+    } else if (availableLangs.includes("ja-JP")) {
+      targetLang = "ja-JP";
+    } else if (availableLangs.includes("en")) {
+      targetLang = "en";
+    } else {
+      targetLang = availableLangs[0];
+    }
+
+    const captionUrl = `https://www.youtube.com/api/timedtext?lang=${targetLang}&v=${videoId}`;
+    const captionRes = await fetch(captionUrl);
+    if (!captionRes.ok) return null;
+    const captionXml = await captionRes.text();
+
+    const textSegments = captionXml.match(/<text[^>]*>(.*?)<\/text>/g) || [];
+    if (textSegments.length === 0) return null;
+
+    return textSegments
+      .map((segment) =>
+        segment
+          .replace(/<[^>]*>/g, "")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&#39;/g, "'")
+          .replace(/&quot;/g, '"')
+      )
+      .join(" ");
+  } catch {
+    return null;
   }
-  const captionXml = await captionRes.text();
+}
 
-  // XMLからテキストを抽出
-  const textSegments = captionXml.match(/<text[^>]*>(.*?)<\/text>/g) || [];
-  if (textSegments.length === 0) {
-    throw new Error("字幕テキストが空です。Whisper APIで音声解析を試みてください。");
+function buildFallbackText(title: string, description: string, tags: string[]): string {
+  const parts: string[] = [`タイトル: ${title}`];
+  if (description.trim()) {
+    parts.push(`説明: ${description}`);
   }
-
-  const transcript = textSegments
-    .map((segment) =>
-      segment
-        .replace(/<[^>]*>/g, "")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&#39;/g, "'")
-        .replace(/&quot;/g, '"')
-    )
-    .join(" ");
-
-  return { title, transcript };
+  if (tags.length > 0) {
+    parts.push(`タグ: ${tags.join(", ")}`);
+  }
+  return parts.join("\n\n");
 }

@@ -213,6 +213,10 @@ export default function Home() {
       </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-8 text-center text-sm text-gray-500">
+        <div className="flex justify-center gap-4 mb-2">
+          <a href="/privacy" className="hover:text-gray-700 underline">プライバシーポリシー</a>
+          <a href="/terms" className="hover:text-gray-700 underline">利用規約</a>
+        </div>
         <p>&copy; 2026 Repomo. All rights reserved.</p>
       </footer>
     </div>
